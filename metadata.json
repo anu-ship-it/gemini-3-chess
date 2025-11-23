@@ -1,0 +1,5 @@
+{
+  "name": "Gemini 3D Chess Master",
+  "description": "A beautiful, interactive 3D chess game powered by React Three Fiber and Gemini AI for move analysis.",
+  "requestFramePermissions": []
+}
