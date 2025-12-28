@@ -16,10 +16,10 @@ const BOARD_OFFSET = (BOARD_SIZE * SQUARE_SIZE) / 2 - SQUARE_SIZE / 2;
 const getPosition = (square: Square): [number, number, number] => {
   const file = square.charCodeAt(0) - 97; // a=0
   const rank = parseInt(square[1]) - 1;   // 1=0
-  
+
   const x = file * SQUARE_SIZE - BOARD_OFFSET;
-  const z = -(rank * SQUARE_SIZE - BOARD_OFFSET); 
-  
+  const z = -(rank * SQUARE_SIZE - BOARD_OFFSET);
+
   return [x, 0, z];
 };
 
@@ -37,11 +37,11 @@ const generateId = (type: string, color: string) => `${color}-${type}-${Math.ran
 // This ensures that when a piece moves, we reuse the same React component (key)
 // so the animation library can interpolate the position change smoothly.
 const usePieceTracking = (
-  boardState: ({ type: PieceSymbol, color: Color, square: Square } | null)[][], 
+  boardState: ({ type: PieceSymbol, color: Color, square: Square } | null)[][],
   lastMove: { from: Square, to: Square } | null
 ) => {
   const prevPiecesRef = useRef<Record<string, { square: Square, type: PieceSymbol, color: Color }>>({});
-  
+
   const trackedPieces = useMemo(() => {
     // 1. Flatten current board state
     const newPieces: { square: Square, type: PieceSymbol, color: Color }[] = [];
@@ -56,7 +56,7 @@ const usePieceTracking = (
       if(!newGroups[key]) newGroups[key] = [];
       newGroups[key].push(p);
     });
-    
+
     // 3. Prepare previous groups
     const prevPieces = prevPiecesRef.current;
     const prevGroups: Record<string, { id: string, square: Square, type: PieceSymbol, color: Color }[]> = {};
@@ -72,7 +72,7 @@ const usePieceTracking = (
     distinctKeys.forEach(key => {
        const oldList = prevGroups[key] || [];
        const newList = newGroups[key] || [];
-       
+
        const usedOld = new Set<number>();
        const usedNew = new Set<number>();
 
@@ -105,16 +105,16 @@ const usePieceTracking = (
        const pairs = [];
        for(const rO of remainingOld) {
           for(const rN of remainingNew) {
-             pairs.push({ 
-               o: rO, 
-               n: rN, 
-               dist: getDistance(rO.square, rN.square) 
+             pairs.push({
+               o: rO,
+               n: rN,
+               dist: getDistance(rO.square, rN.square)
              });
           }
        }
        // Sort by closest distance first
        pairs.sort((a, b) => a.dist - b.dist);
-       
+
        const pairUsedOld = new Set<string>();
        const pairUsedNew = new Set<string>();
 
@@ -122,7 +122,7 @@ const usePieceTracking = (
            if(!pairUsedOld.has(p.o.id) && !pairUsedNew.has(p.n.square)) {
                pairUsedOld.add(p.o.id);
                pairUsedNew.add(p.n.square);
-               
+
                // Mark them as effectively used for this step
                // We add to result
                result.push({ ...p.n, id: p.o.id });
@@ -168,66 +168,82 @@ interface TileProps {
 const Tile: React.FC<TileProps> = ({ x, z, isBlack, squareName, isSelected, isPossibleMove, isLastMove, onClick }) => {
   const [hovered, setHover] = useState(false);
 
-  const baseColor = isBlack ? '#779556' : '#ebecd0'; 
-  
-  const { color } = useSpring({
-    color: isSelected ? '#818cf8' : (isLastMove ? '#fcd34d' : (hovered ? '#fbbf24' : baseColor)),
+  const baseColor = isBlack ? '#6b7d5c' : '#e8e4d9';
+
+  const { color, emissive } = useSpring({
+    color: isSelected ? '#3b82f6' : (isLastMove ? '#f59e0b' : (hovered ? '#60a5fa' : baseColor)),
+    emissive: isSelected ? '#1d4ed8' : (isLastMove ? '#d97706' : (hovered ? '#2563eb' : '#000000')),
     config: { duration: 200 }
   });
 
   return (
     <group position={[x * SQUARE_SIZE - BOARD_OFFSET, 0, -(z * SQUARE_SIZE - BOARD_OFFSET)]}>
-      <animated.mesh 
-        receiveShadow 
+      <animated.mesh
+        receiveShadow
+        castShadow
         onClick={(e) => { e.stopPropagation(); onClick(squareName); }}
-        onPointerOver={() => setHover(true)}
-        onPointerOut={() => setHover(false)}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHover(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setHover(false);
+          document.body.style.cursor = 'auto';
+        }}
         position={[0, -0.05, 0]}
       >
-        <boxGeometry args={[SQUARE_SIZE, 0.1, SQUARE_SIZE]} />
-        <animated.meshStandardMaterial 
-          color={color} 
-          roughness={0.6}
-          metalness={0.1}
+        <boxGeometry args={[SQUARE_SIZE, 0.12, SQUARE_SIZE]} />
+        <animated.meshStandardMaterial
+          color={color}
+          roughness={0.4}
+          metalness={0.2}
+          emissive={emissive}
+          emissiveIntensity={0.2}
         />
       </animated.mesh>
-      
-      {/* Possible Move Indicator - Floating Ring */}
+
+      {/* Possible Move Indicator - Enhanced */}
       {isPossibleMove && (
-        <group position={[0, 0.05, 0]}>
-          <Float speed={4} rotationIntensity={0} floatIntensity={0.2} floatingRange={[0, 0.1]}>
+        <group position={[0, 0.08, 0]}>
+          <Float speed={3} rotationIntensity={0} floatIntensity={0.3} floatingRange={[0, 0.15]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.35, 0.45, 32]} />
-              <meshBasicMaterial color="black" transparent opacity={0.15} />
+              <ringGeometry args={[0.4, 0.5, 32]} />
+              <meshStandardMaterial color="#3b82f6" transparent opacity={0.6} emissive="#1d4ed8" emissiveIntensity={0.5} />
             </mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[0.2, 32]} />
-              <meshBasicMaterial color="#818cf8" transparent opacity={0.4} />
+              <circleGeometry args={[0.25, 32]} />
+              <meshStandardMaterial color="#60a5fa" transparent opacity={0.5} emissive="#3b82f6" emissiveIntensity={0.3} />
             </mesh>
           </Float>
         </group>
       )}
 
       {/* Coordinate Labels */}
-      {z === 0 && ( // Rank 1 (Bottom)
-         <Text 
-           position={[0, 0.06, SQUARE_SIZE/2 - 0.1]} 
-           rotation={[-Math.PI/2, 0, 0]} 
-           fontSize={0.25} 
-           color={isBlack ? "#ebecd0" : "#779556"} 
+      {z === 0 && (
+         <Text
+           position={[0, 0.07, SQUARE_SIZE/2 - 0.1]}
+           rotation={[-Math.PI/2, 0, 0]}
+           fontSize={0.28}
+           color={isBlack ? "#e8e4d9" : "#6b7d5c"}
            anchorY="bottom"
-           fontWeight="bold">
+           fontWeight="bold"
+           outlineWidth={0.01}
+           outlineColor="#000000">
            {String.fromCharCode(97 + x)}
          </Text>
       )}
-       {x === 0 && ( // File A (Left)
-         <Text 
-           position={[-SQUARE_SIZE/2 + 0.1, 0.06, 0]} 
-           rotation={[-Math.PI/2, 0, 0]} 
-           fontSize={0.25} 
-           color={isBlack ? "#ebecd0" : "#779556"} 
+       {x === 0 && (
+         <Text
+           position={[-SQUARE_SIZE/2 + 0.1, 0.07, 0]}
+           rotation={[-Math.PI/2, 0, 0]}
+           fontSize={0.28}
+           color={isBlack ? "#e8e4d9" : "#6b7d5c"}
            anchorX="left"
-           fontWeight="bold">
+           fontWeight="bold"
+           outlineWidth={0.01}
+           outlineColor="#000000">
            {z + 1}
          </Text>
       )}
@@ -244,21 +260,21 @@ interface Board3DProps {
   boardState: ({ type: PieceSymbol, color: Color, square: Square } | null)[][];
 }
 
-const Board3D: React.FC<Board3DProps> = ({ 
-  selectedSquare, 
-  validMoves, 
-  lastMove, 
-  onSquareClick, 
-  boardState 
+const Board3D: React.FC<Board3DProps> = ({
+  selectedSquare,
+  validMoves,
+  lastMove,
+  onSquareClick,
+  boardState
 }) => {
-  
+
   // --- Tiles Generation ---
   const tiles = [];
   for (let x = 0; x < 8; x++) {
     for (let z = 0; z < 8; z++) {
       const squareName = `${String.fromCharCode(97 + x)}${z + 1}` as Square;
       const isBlack = (x + z) % 2 !== 1;
-      
+
       const isSelected = selectedSquare === squareName;
       const isPossibleMove = validMoves.includes(squareName);
       const isLastMove = lastMove ? (lastMove.from === squareName || lastMove.to === squareName) : false;
@@ -283,7 +299,7 @@ const Board3D: React.FC<Board3DProps> = ({
   const trackedPieces = usePieceTracking(boardState, lastMove);
 
   const pieces = trackedPieces.map((p) => {
-    const Component = 
+    const Component =
       p.type === 'p' ? Pieces.Pawn :
       p.type === 'r' ? Pieces.Rook :
       p.type === 'n' ? Pieces.Knight :
@@ -292,9 +308,9 @@ const Board3D: React.FC<Board3DProps> = ({
       Pieces.King;
 
     return (
-      <Component 
-        key={p.id} // Stable ID ensures correct component reuse and smooth animation
-        position={getPosition(p.square)} 
+      <Component
+        key={p.id}
+        position={getPosition(p.square)}
         color={p.color}
         isSelected={selectedSquare === p.square}
         onClick={() => onSquareClick(p.square)}
@@ -304,26 +320,42 @@ const Board3D: React.FC<Board3DProps> = ({
 
   return (
     <group>
-      {/* Board Frame */}
-      <mesh position={[0, -0.22, 0]} receiveShadow>
-        <boxGeometry args={[SQUARE_SIZE * 8 + 1.2, 0.24, SQUARE_SIZE * 8 + 1.2]} />
-        <meshStandardMaterial color="#2d1b0f" roughness={0.6} />
+      {/* Enhanced Board Frame */}
+      <mesh position={[0, -0.25, 0]} receiveShadow castShadow>
+        <boxGeometry args={[SQUARE_SIZE * 8 + 1.6, 0.3, SQUARE_SIZE * 8 + 1.6]} />
+        <meshStandardMaterial
+          color="#1a0f08"
+          roughness={0.3}
+          metalness={0.5}
+          emissive="#0f0806"
+          emissiveIntensity={0.1}
+        />
+      </mesh>
+
+      {/* Inner Frame Border */}
+      <mesh position={[0, -0.12, 0]} receiveShadow>
+        <boxGeometry args={[SQUARE_SIZE * 8 + 0.8, 0.08, SQUARE_SIZE * 8 + 0.8]} />
+        <meshStandardMaterial
+          color="#3d2817"
+          roughness={0.4}
+          metalness={0.6}
+        />
       </mesh>
 
       {/* Reflective Base Board */}
-      <mesh position={[0, -0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[SQUARE_SIZE * 8 + 0.4, SQUARE_SIZE * 8 + 0.4]} />
         <MeshReflectorMaterial
-          mirror={1}
-          blur={[400, 100]}
-          resolution={1024}
-          mixBlur={1}
-          mixStrength={15}
-          depthScale={1}
-          minDepthThreshold={0.85}
-          color="#151515"
-          metalness={0.6}
-          roughness={0.4}
+          mirror={0.8}
+          blur={[500, 150]}
+          resolution={2048}
+          mixBlur={1.2}
+          mixStrength={20}
+          depthScale={1.2}
+          minDepthThreshold={0.8}
+          color="#0a0a0a"
+          metalness={0.8}
+          roughness={0.2}
         />
       </mesh>
 
@@ -341,29 +373,48 @@ const Board3D: React.FC<Board3DProps> = ({
 // --- Controls Component ---
 const CameraController: React.FC<{ view: 'white' | 'black' }> = ({ view }) => {
   const { camera } = useThree();
-  
+  const controlsRef = useRef<any>();
+
   useEffect(() => {
-    const newPos = view === 'white' ? new THREE.Vector3(0, 12, 12) : new THREE.Vector3(0, 12, -12);
+    const newPos = view === 'white' ? new THREE.Vector3(0, 14, 14) : new THREE.Vector3(0, 14, -14);
     const startPos = camera.position.clone();
     let frame = 0;
-    const duration = 60; 
-    
+    const duration = 60;
+
     const animate = () => {
       frame++;
       const t = frame / duration;
-      const ease = 1 - Math.pow(1 - t, 3); // cubic out
-      
+      const ease = 1 - Math.pow(1 - t, 3);
+
       if (t <= 1) {
         camera.position.lerpVectors(startPos, newPos, ease);
         camera.lookAt(0, 0, 0);
         requestAnimationFrame(animate);
+      } else if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
       }
     };
     animate();
 
   }, [view, camera]);
 
-  return <OrbitControls minDistance={5} maxDistance={20} enablePan={false} maxPolarAngle={Math.PI / 2.2} />;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      minDistance={8}
+      maxDistance={25}
+      enablePan={true}
+      panSpeed={0.5}
+      maxPolarAngle={Math.PI / 2.1}
+      minPolarAngle={Math.PI / 6}
+      enableDamping={true}
+      dampingFactor={0.05}
+      rotateSpeed={0.5}
+      zoomSpeed={0.8}
+      target={[0, 0, 0]}
+    />
+  );
 }
 
 
@@ -380,35 +431,63 @@ interface ThreeChessProps {
 
 const ThreeChess: React.FC<ThreeChessProps> = (props) => {
   return (
-    <div className="w-full h-full absolute inset-0 bg-neutral-900">
-      <Canvas shadows camera={{ position: [0, 12, 12], fov: 45 }} dpr={[1, 2]}>
-        <color attach="background" args={['#0f172a']} />
-        
-        {/* Cinematic Lighting */}
-        <ambientLight intensity={0.2} />
-        <spotLight 
-          position={[10, 20, 10]} 
-          angle={0.5} 
-          penumbra={1} 
-          intensity={2} 
-          castShadow 
+    <div className="w-full h-full absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800">
+      <Canvas
+        shadows
+        camera={{ position: [0, 14, 14], fov: 50 }}
+        dpr={[1, 2]}
+        gl={{ antialias: true, alpha: false }}
+      >
+        <color attach="background" args={['#0a0f1e']} />
+
+        {/* Enhanced Lighting Setup */}
+        <ambientLight intensity={0.3} />
+        <directionalLight
+          position={[15, 25, 15]}
+          intensity={1.5}
+          castShadow
+          shadow-mapSize={[2048, 2048]}
+          shadow-camera-far={50}
+          shadow-camera-left={-15}
+          shadow-camera-right={15}
+          shadow-camera-top={15}
+          shadow-camera-bottom={-15}
           shadow-bias={-0.0001}
         />
-        <pointLight position={[-10, 5, -10]} intensity={1} color="#4f46e5" />
-        <pointLight position={[10, 5, 10]} intensity={1} color="#f59e0b" />
+        <hemisphereLight
+          args={['#87ceeb', '#4a5568', 0.6]}
+          position={[0, 20, 0]}
+        />
+        <pointLight position={[-12, 8, -12]} intensity={0.8} color="#3b82f6" distance={30} />
+        <pointLight position={[12, 8, 12]} intensity={0.8} color="#f59e0b" distance={30} />
+        <spotLight
+          position={[0, 25, 0]}
+          angle={0.6}
+          penumbra={1}
+          intensity={0.5}
+          castShadow
+        />
 
         {/* Environment */}
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <Environment preset="city" blur={0.6} />
-        <fog attach="fog" args={['#0f172a', 10, 50]} />
+        <Stars radius={150} depth={60} count={6000} factor={5} saturation={0} fade speed={0.5} />
+        <Environment preset="night" blur={0.8} />
+        <fog attach="fog" args={['#0a0f1e', 15, 60]} />
 
         {/* Game Content */}
         <Board3D {...props} />
 
         {/* Controls */}
         <CameraController view={props.view} />
-        
-        <ContactShadows resolution={1024} scale={40} blur={2} opacity={0.4} far={4} color="#000000" />
+
+        <ContactShadows
+          resolution={2048}
+          scale={45}
+          blur={1.5}
+          opacity={0.5}
+          far={5}
+          color="#000000"
+          position={[0, -0.1, 0]}
+        />
       </Canvas>
     </div>
   );

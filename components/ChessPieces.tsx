@@ -3,9 +3,9 @@ import { Color } from 'chess.js';
 import { useSpring, animated, config } from '@react-spring/three';
 
 // Material colors
-const WHITE_COLOR = "#f0f0f0";
-const BLACK_COLOR = "#222222";
-const SELECTED_COLOR = "#6366f1"; // Indigo glow
+const WHITE_COLOR = "#f5f5f5";
+const BLACK_COLOR = "#1a1a1a";
+const SELECTED_COLOR = "#3b82f6";
 
 interface PieceGeometryProps {
   color: Color;
@@ -18,20 +18,21 @@ interface PieceGeometryProps {
 // Reusable material setup
 const PieceMaterial = ({ color, isSelected, isHovered }: { color: Color, isSelected: boolean, isHovered: boolean }) => {
   const baseColor = color === 'w' ? WHITE_COLOR : BLACK_COLOR;
-  
-  const { emissive, colorAnim } = useSpring({
-    emissive: isSelected ? SELECTED_COLOR : (isHovered ? "#444" : "#000000"),
+
+  const { emissive, colorAnim, metalness } = useSpring({
+    emissive: isSelected ? SELECTED_COLOR : (isHovered ? "#555555" : "#000000"),
     colorAnim: isSelected ? SELECTED_COLOR : baseColor,
-    config: config.default
+    metalness: isSelected || isHovered ? 0.8 : 0.4,
+    config: config.gentle
   });
 
   return (
     <animated.meshStandardMaterial
       color={colorAnim}
-      roughness={0.3}
-      metalness={0.6}
+      roughness={0.2}
+      metalness={metalness}
       emissive={emissive}
-      emissiveIntensity={isSelected ? 0.8 : 0}
+      emissiveIntensity={isSelected ? 1 : (isHovered ? 0.2 : 0)}
     />
   );
 };
@@ -52,13 +53,13 @@ const AnimatedPieceGroup: React.FC<{
     pos: [position[0], position[1] + (hovered || isSelected ? 0.3 : 0), position[2]],
     rot: rotation,
     scale: hovered || isSelected ? 1.1 : 1,
-    config: config.gentle // Smoother easing
+    config: config.gentle
   });
 
   return (
-    <animated.group 
-      position={pos as any} 
-      rotation={rot as any} 
+    <animated.group
+      position={pos as any}
+      rotation={rot as any}
       scale={scale}
       onClick={(e) => {
         e.stopPropagation();
